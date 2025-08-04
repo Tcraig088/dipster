@@ -1,0 +1,17 @@
+LICENSE
+README.md
+setup.cfg
+setup.py
+dipster/__init__.py
+dipster/grad.py
+dipster/hyper.py
+dipster/nets.py
+dipster/params.py
+dipster/reporting.py
+dipster/solver.py
+dipster/tomo.py
+dipster/util.py
+dipster.egg-info/PKG-INFO
+dipster.egg-info/SOURCES.txt
+dipster.egg-info/dependency_links.txt
+dipster.egg-info/top_level.txt

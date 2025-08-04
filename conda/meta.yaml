@@ -1,0 +1,32 @@
+package:
+  name: TDDIP-ET
+  version: 'v0.0.1'
+
+source:
+  git_url: https://github.com/EMAT-tomography/time-resolved-tomography
+  md5: "16eaa87f20189b68c92ba989a1380cd2"  
+
+requirements:
+
+  build:
+    - python >=3.7
+    - setuptools
+
+
+  run:
+    - python
+    - numpy
+    - pandas
+    - scikit-image
+    - scipy
+    - plotly
+    - conda-forge::tifffile
+    - conda-forge::mrcz
+    - conda-forge::stackview
+
+
+about:
+  home: https://github.com/EMAT-tomography/time-resolved-tomography
+  license: GPL-3.0-only
+  license_file: LICENSE
+  summary: "Machine Learning Algorithm for Time-Resolved Tomography"

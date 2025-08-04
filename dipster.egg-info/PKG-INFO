@@ -1,0 +1,68 @@
+Metadata-Version: 2.1
+Name: dipster
+Version: 0.1.0
+Summary: Machine Learning Library for Time Series Analysis During Electron Tomography
+Home-page: https://github.com/EMAT-tomography/dipster
+Author: Tim Craig
+Author-email: tim.craig@uantwerpen.be
+License: GPL3.0
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: GPL3.0 License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# 1. TDDIP-ET
+TDDIP-ET (Time Dependent Deep Image Priors -  Electron Tomography)
+Time dependent deep image priors (TDDIP) is a novel machine learning technique to determine time resolved reconstructed data from initial projections. This library is a specific implementation of TDDIP for reconstructing 3D reconstructions from 2D projections obtained through electron microscopy. 
+
+Currently no documentation is available for this library. 
+
+## 1.2. Installation 
+This package can be installed through conda using the following command.
+
+```bash
+    conda create -n <new_env>
+    conda activate
+
+    conda install tomosipo pytorch torchvision torchaudio cudatoolkit=<x.x> pytorch-cuda=<x.x> -c aahendriksen -c astra-toolbox -c pytorch -c nvidia
+    conda install tddipet -c Tcraig088
+```
+Current installation has been tested with pytorch 2.0.1  and cudatoolkit/pytorch cuda 11.7.
+
+## 1.3. Usage 
+
+
+```python
+    import tddipet as tet
+
+    #load in tiltseries data
+    opt = tet.Option(data)
+    solver = tet.Solver()
+    solver.fit(data)
+
+    # reconstruct your data set at a specific point in time
+    recon = solver.reconstruct(time)
+```
+## 1.4. License 
+
+This code is licensed under GNU general public license version 3.0.
+
+## 1.5. Citations
+When using this library please cite Yoo _et. al._ 2019 which this work is derived from. 
+
+@article{yoo2021time,
+  title={Time-Dependent Deep Image Prior for Dynamic MRI},
+  author={Yoo, Jaejun and Jin, Kyong Hwan and Gupta, Harshit and Yerly, Jerome and Stuber, Matthias and Unser, Michael},
+  journal={IEEE Transactions on Medical Imaging},
+  year={2021},
+  publisher={IEEE}
+}
+
+
+## 1.6. Contributors
+EMAT: Timothy Craig - tim.craig@uantwerpen.be
+
+## 1.7 Debug Notice
+
+
