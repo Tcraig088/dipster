@@ -25,8 +25,9 @@ class Manifold():
             z = torch.tensor(z).to(self.device).to(torch.float32)
         t_norm = t / self.times
         z_norm = z / self.depth
-        print(x, y, z_norm, t_norm)
+        #print(x, y, z_norm, t_norm)
         manifold = torch.stack([x, y, z_norm, t_norm])
+        #manifold = torch.stack([z_norm, t_norm])
         if len(manifold.shape)<2:
             manifold = manifold[:, None]
         manifold = manifold.permute(1, 0).float().to(self.device)

@@ -4,7 +4,6 @@ import sys
 import time
 from collections.abc import Iterable
 import numpy as np
-import logging
 
 import torch
 import torch.nn as nn
@@ -14,6 +13,7 @@ from kornia import losses as L
 from ray import train, tune
 from dipster import grad, nets, tomo, params, util
 from dipster.reporting import Report
+from tomobase.log import logger
 
 class Solver():
     def __init__(self, ts = None, fromdict = False):
@@ -75,14 +75,25 @@ class Solver():
         self.step = 0 
         self.setup = True 
 
-    def train(self, ts):
+    def train(self, ts, save_path=''):
         if self.setup == False:
             self._setup(ts)
 
+        best_loss = 1e8
+        best_psnr = 0
+        best_ssim = 0
+
+        previous_path = None
+
+        logger.info('Input shape:', (self.params.latent_dim, 1, 1))
+        logger.info(self.mapnet)
+        logger.info(self.net)
+
         if len(ts.data.shape) < 4:
             ts.data = ts.data[:,:,:, None]
+            print("Data shape is less than 4, adding a channel dimension. New shape:", ts.data.shape)
         while self.step < self.params.max_steps:
-
+            print(f"Step {self.step} of {self.params.max_steps}")
             self.optimizer.zero_grad()
 
             i_batched_frames = torch.randint(0, self.params.frames, (self.params.batch_size,)).to(self.params.dev)
@@ -109,11 +120,36 @@ class Solver():
             self.optimizer.step()
             self.scheduler.step()
             self.step += 1
+            print(self.step)
 
             if self.params.evaluate==True:
                 if self.step % self.params.save_period == 0: 
                     self.results._update_values('losses',times = [self.step, time.time()-self.results.start], losses = [self.step, total_loss])
-                    self._evaluate(ts)
+                    metrics = self._evaluate(ts)
+                    if self.step % 10000 == 0:
+                        torch.save(self.state_dict(), os.path.join(self.params.wandb_local_dir, f'model_step{self.step}.pkl'))
+                        
+                    logger.info(f'Step #{self.step: 8d} - Loss = {total_loss: 10.5g} - PSNR = {metrics["PSNR"]: 8.3g} - SSIM = {metrics["SSIM"]: 10.5g}')
+                    torch.save(self.state_dict(), save_path + '_'+ self.params.wandb_name + '_' + str(self.step) + '.dip.pkl')
+                    if not (previous_path is None):
+                        os.remove(previous_path)
+                    previous_path = save_path + '_'+ self.params.wandb_name + '_' + str(self.step) + '.dip.pkl'
+                    
+                    if total_loss < best_loss:
+                        best_loss = total_loss
+                        best_loss_step = self.step
+
+                    if metrics["PSNR"]>best_psnr:
+                        best_psnr = metrics["PSNR"]
+                        best_psnr_step = self.step
+
+                    if metrics["SSIM"]>best_ssim:
+                        best_ssim = metrics["SSIM"]
+                        best_ssim_step = self.step
+
+                    logger.info(f'Best loss: {best_loss} at step #{best_loss_step: 8d}')
+                    logger.info(f'Best PSNR: {best_psnr} at step #{best_psnr_step: 8d}')
+                    logger.info(f'Best SSIM: {best_ssim} at step #{best_ssim_step: 8d}')
 
                         
 
@@ -127,7 +163,7 @@ class Solver():
             val = tomo.fp(self.reconstruct_slices(ts.angles[rand], [i], ts.times[rand]),ts.angles[rand]).squeeze()
             rec[:,i] = util.torch_to_np(val)
         ref = ts.data[:,:,rand,0].squeeze()
-        self.results.update(self.step, rec, ref, 'tiltseries')
+        metrics = self.results.update(self.step, rec, ref, 'tiltseries')
 
         if self.params.eval_vol == True:
             # reconstruct a slice of the volume at halfway through the centre and at time = 0 
@@ -141,6 +177,8 @@ class Solver():
         else:
             self.results.publish()
 
+        return metrics
+
     def reconstruct_slices(self, angles, depths, times):
         #Note all arrays must be same lenghth
         batch_val = 1
@@ -148,7 +186,8 @@ class Solver():
             if len(depths) > 1:
                 batch_val = len(depths)
         manifold_output = self.manifold.get_value(angles,depths, times)
-        mapnet_output = self.mapnet(manifold_output).reshape((batch_val,self.params.output_nch, self.params.style_size,self.params.style_size))
+        print(manifold_output)
+        mapnet_output = self.mapnet(manifold_output).reshape((batch_val,self.params.input_nch, self.params.style_size,self.params.style_size))
         out = self.net(mapnet_output)
         out= torch.permute(out, (2,0,3,1))
         return out
@@ -161,17 +200,23 @@ class Solver():
         ts = kwargs.get('ts', None)
         angles =  kwargs.get('angles', ts.angles)
         times = kwargs.get('times', ts.times)
+        slice_by_slice = kwargs.get('slice_by_slice', False)
         if usesetangle:
             angles = torch.zeros_like(times)
         depths = kwargs.get('depths', range(self.params.proj_size))
         save_func = kwargs.get('save_func', None)
         saveas = kwargs.get('saveas', None)
         for i in range(len(times)):
+            print(f"Reconstructing frame {i} of {len(times)}")
             rec = np.zeros((self.params.proj_size, self.params.proj_size, len(depths)))
             tiled_angles = torch.full((len(depths),), angles[i]).to(self.params.dev)
             tiled_times = torch.full((len(depths),), times[i]).to(self.params.dev)
-            rec[:,:,:] = util.torch_to_np(self.reconstruct_slices(tiled_angles, depths, tiled_times)).squeeze()
-            print(tiled_angles.shape, tiled_times.shape, len(depths))
+            if not slice_by_slice:
+                rec[:,:,:] = util.torch_to_np(self.reconstruct_slices(tiled_angles, depths, tiled_times)).squeeze()
+            else:
+                for j in range(len(depths)):
+                    print(f" Reconstructing depth {j} of {len(depths)}")
+                    rec[:, :, j] = util.torch_to_np(self.reconstruct_slices(tiled_angles[0], depths[j], tiled_times[0])).squeeze()
             if (save_func is not None) and (saveas is not None):
                 save_func(rec, i, saveas)
             else:

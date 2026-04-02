@@ -2,7 +2,7 @@ import os
 import sys
 import numpy as np
 import torch 
-import logging
+from tomobase import logger
 class Params():
     def __init__(self, ts=None):
         # Data Parameters
@@ -82,12 +82,9 @@ class Params():
         return _dict
 
     def log(self):
-        #set up logging in juypter notebook
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', stream=sys.stdout)
-
         dict = self.to_dict()
         for dict_key in dict:
-            logging.info(f"{dict_key}: {dict[dict_key]}")
+            logger.debug(f"{dict_key}: {dict[dict_key]}")
 
 
     @classmethod

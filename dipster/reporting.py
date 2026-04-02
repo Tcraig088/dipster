@@ -40,6 +40,8 @@ class Report():
 
         self._update_images(title, [ref, rec])
 
+        return {'PSNR': psnr_val, 'SSIM': ssim_val}
+
 
     def _update_values(self, title, **kwargs):
         if not self.hypertrain:
@@ -58,11 +60,29 @@ class Report():
                     self._tables[dict_key] = []
                 self._tables[dict_key] = value[1]
 
+    def _to_wandb_image(self, x, caption=None):
+        try:
+            import torch
+            if torch.is_tensor(x):
+                x = x.detach()
+                if x.is_cuda:
+                    x = x.cpu()
+                x = x.numpy()
+        except Exception:
+            pass
+
+        return wandb.Image(x, caption=caption)
+
     def _update_images(self, title,  value):
         if not self.hypertrain:
-            self._log[title] = [wandb.Image(value[0], caption='reference'), wandb.Image(value[1], caption='reconstruction')]
+            #print(value[0].shape, value[1].shape)
+            self._log[title] = [
+                self._to_wandb_image(value[0], caption="reference"),
+                self._to_wandb_image(value[1], caption="reconstruction")]      
         else:
             self._tables[title +'_image'] = value
+
+
 
     def publish(self):
         wandb.log(self._log)

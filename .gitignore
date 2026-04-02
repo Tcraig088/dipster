@@ -1,0 +1,17 @@
+*~
+*.log
+/scripts/wandb/
+/Tutorials/wandb/
+/scripts/logs/
+
+*.egg
+*.egg-info/
+
+data/
+build/
+.vscode/
+
+__pycache__/
+*.py[cod]
+build/
+

@@ -1,11 +1,12 @@
-import tomosipo as tp
+#import tomosipo as tp
 import os 
 import torch 
 import astra
 import sys
+import tomosipo as tp
 from collections.abc import Iterable
 from dipster import util
-
+import numpy as np
 def fp(rec, ang): 
     s, d, c = rec.shape[0], rec.shape[1], rec.shape[3]
 
@@ -16,6 +17,7 @@ def fp(rec, ang):
 
     angs = util.torch_to_np(angs)
     pg = tp.parallel(angles = angs, shape = (d,s), size = (1,1))
+    #print(d,s,s)
     vg = tp.volume(shape = (d,s,s), size = (1,1,1))
     A = tp.operator(vg,pg)
 
@@ -31,7 +33,7 @@ def fp(rec, ang):
     return sino
 
 
-def bp(sino, ang, iters = 100):
+def bp(sino, ang, iters = 1):
     s, d, c = sino.shape[0], sino.shape[1], sino.shape[3]
     dev = sino.device
     sino = torch.permute(sino, (3,2,0,1))

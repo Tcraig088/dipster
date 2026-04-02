@@ -20,13 +20,17 @@ class custom_grad_func(torch.autograd.Function):
         to stash information for backward computation. You can cache arbitrary 
         objects for use in the backward pass using the ctx.save_for_backward method.
         """
+        print("Forward pass called with input shape:", input_r.shape)
         ctx.dev = input_r.get_device()
         ctx.angle=angle
         x_val = input_r
         y = tomo.fp(x_val, angle)
         y_cut = torch.zeros(y.shape[0],y.shape[1],1,y.shape[3]).to(ctx.dev)
+        print("Output shape after forward pass:", y.shape)
+        print("Output shape after trimming duplications:", y_cut.shape)
         for i in range(y.shape[3]):
             for j in range(y.shape[1]):
+                print('FP Geo',y[:,j,j,i].shape, y_cut[:,j,0,i].shape)
                 y_cut[:,j,0,i] = y[:,j,j,i]
         return y_cut
         
@@ -38,12 +42,13 @@ class custom_grad_func(torch.autograd.Function):
         with respect to the output, and we need to compute the gradient of the loss
         with respect to the input.
         """
+        print("Backward pass called with grad_output shape:", grad_output.shape)
         angle = ctx.angle
         if torch.numel(angle) == 1:
             angle = torch.tensor([angle.item()])
 
         yc = grad_output
-        grad_output = tomo.bp(yc, angle, 1)
+        grad_output = tomo.bp(yc, angle)
 
         #return grad_output
         return grad_output, None, None, None, None, None, None
