@@ -13,7 +13,7 @@ from kornia import losses as L
 from ray import train, tune
 from dipster import grad, nets, tomo, params, util
 from dipster.reporting import Report
-from tomobase.log import logger
+from tomobase.core.log import logger
 
 class Solver():
     def __init__(self, ts = None, fromdict = False):
